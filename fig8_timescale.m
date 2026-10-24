@@ -91,7 +91,7 @@ set_ax(ax); plabel(ax,'B');
 ax = axes(fig,'Position',[lm, rb(2), wL, rh]); hold(ax,'on');
 m = fw >= 1 & fw <= 30;
 plot(ax, fw(m),  pw(m)  / max(pw(m)),  'Color', ce, 'LineWidth', 1.2, 'DisplayName', 'slowly modulated');
-plot(ax, fw0(m), pw0(m) / max(pw0(m)), 'k--', 'LineWidth', .9, 'DisplayName', 'unmodulated');
+plot(ax, fw0(m), pw0(m) / max(pw0(m)), 'k:', 'LineWidth', .9, 'DisplayName', 'unmodulated');
 set(ax,'YScale','log'); xlim(ax,[1 30]);
 xlabel(ax,'Frequency (Hz)'); ylabel(ax,'Power (normalised)');
 legend(ax,'Location','northeast','FontSize',6.5,'Box','off','TextColor','k');
