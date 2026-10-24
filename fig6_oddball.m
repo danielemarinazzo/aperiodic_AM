@@ -1,5 +1,5 @@
 function fig6_oddball()
-% Figure 6 — Empirical auditory oddball ERP.
+% Empirical auditory oddball ERP.
 %
 % Loads pre-extracted deviant trials from cfg.data_dir:
 %   oddball_trials_80x351.csv   (N_trials x N_samples, baseline-corrected, uV)
@@ -72,10 +72,10 @@ set_ax(ax); plabel(ax,'A');
 % B: PSD
 ax = subplot(2,2,2);
 semilogy(ax,fw,psd_avg,'Color',[.75 .75 .75],'LineWidth',.6); hold(ax,'on');
-semilogy(ax,sp.freqs,10.^sp.modeled,  'Color',col,'LineWidth',1.5);
+hfit = semilogy(ax,sp.freqs,10.^sp.modeled,  'Color',col,'LineWidth',1.5);
 semilogy(ax,sp.freqs,10.^sp.aperiodic,'Color',col,'LineWidth',1.0,'LineStyle','--');
 xlim(ax,[2 40]); xlabel(ax,'Frequency (Hz)'); ylabel(ax,'Power');
-lgd = legend(ax,sprintf('exp = %+.2f',sp.exponent), ...
+lgd = legend(ax,hfit,sprintf('exp = %+.2f',sp.exponent), ...
        'Location','northeast','FontSize',7,'Box','off','TextColor','k');
 
 title(ax,'PSD', ...
@@ -105,13 +105,14 @@ cb = colorbar(ax);
 cb.FontSize = 7;
 cb.Color = 'k';              % tick labels + axis color
 cb.Label.String = 'Power (dB re baseline)';
-cb.Label.Color = 'k';        % label textxline(ax,0,'--k','LineWidth',.8);
+cb.Label.Color = 'k';        % label text
+xline(ax,0,'--k','LineWidth',.8);
 xlabel(ax,'Time (ms)'); ylabel(ax,'Frequency (Hz)'); xlim(ax,[t_ms(1) t_ms(end)]);
 title(ax,'Trial-averaged wavelet TFR', ...
       'FontSize',8,'FontWeight','bold','HorizontalAlignment','center','Color','k');
 set_ax(ax); plabel(ax,'C');
 
-% D: exponent timecourse (y-axis on right)
+% D: exponent timecourse
 ax = subplot(2,2,4); set(ax,'Color','w');
 v = ~isnan(res.exponent);
 plot(ax,t_bin_ms(v),res.exponent(v),'Color',[.56 .27 .68],'LineWidth',1.5);
@@ -126,18 +127,16 @@ if any(pre_v)
 end
 xlabel(ax,'Time (ms)'); xlim(ax,[t_ms(1) t_ms(end)]);
 set_ax(ax);
-set(ax,'YAxisLocation','right','Box','off','TickDir','out','FontSize',8,'LineWidth',.7, ...
-       'XColor','k');
-ylabel(ax,'Aperiodic exponent'); ax.YColor = 'k';
+ylabel(ax,'Aperiodic exponent');
 title(ax,'Aperiodic exponent(t)', ...
       'FontSize',8,'FontWeight','bold','HorizontalAlignment','center','Color','k');
 plabel(ax,'D');
 
-save_fig(fig, cfg, 'fig6_oddball');
+save_fig(fig, cfg, 'fig4_oddball');
 
 %% ── Caption statistics ───────────────────────────────────────────────────
 [~, n1_idx] = min(avg);
-fprintf('\n--- Fig6 Caption statistics ---\n');
+fprintf('\n--- fig4_oddball caption statistics ---\n');
 fprintf('N1 amplitude = %.1f uV at %.0f ms\n', avg(n1_idx), t_ms(n1_idx));
 fprintf('PSD: exp = %.2f  R2 = %.2f  npeaks = %d\n', sp.exponent, sp.r_squared, sp.n_peaks);
 if sp.n_peaks > 0

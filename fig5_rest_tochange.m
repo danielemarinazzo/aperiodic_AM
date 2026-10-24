@@ -1,5 +1,5 @@
-function fig7_rest()
-% Figure 7: Scalp EEG and ECoG — rest vs propofol sedation.
+function fig5_rest()
+% Scalp EEG and ECoG — rest vs propofol sedation.
 %
 % Panel reading order (left-to-right, top-to-bottom):
 %   A  raw signals (time)         B  exponent violin
@@ -19,9 +19,9 @@ if isempty(recs), return; end
 
 style = struct( ...
     'scalp_rest', struct('col',[.16 .50 .73],'ls','-', 'lw',1.1,'fa',.70,'lbl','Scalp rest'), ...
-    'scalp_anes', struct('col',[.53 .75 .90],'ls','--','lw',1.1,'fa',.50,'lbl','Scalp anes'), ...
+    'scalp_anes', struct('col',[.53 .75 .90],'ls','-', 'lw',1.1,'fa',.50,'lbl','Scalp anes'), ...
     'ecog_rest',  struct('col',[.90 .60 .13],'ls','-', 'lw',1.1,'fa',.70,'lbl','ECoG rest'), ...
-    'ecog_anes',  struct('col',[.98 .82 .52],'ls','--','lw',1.1,'fa',.50,'lbl','ECoG anes'));
+    'ecog_anes',  struct('col',[.98 .82 .52],'ls','-', 'lw',1.1,'fa',.50,'lbl','ECoG anes'));
 keys = {'scalp_rest','scalp_anes','ecog_rest','ecog_anes'};
 
 %% Layout
@@ -36,19 +36,26 @@ rb       = @(r) 1 - tm - (r-1)*(row_h+rg) - row_h;
 x_wide   = lm;
 x_narrow = lm + w_wide + mg;
 rh3      = (3*(row_h+rg) - rg) / 3;
+rh2      = (4*(row_h+rg) - rg) / 2;   % right col: 2 panels over full height
 
 %% A: raw signals
 ax_A = axes(fig,'Position',[x_wide, rb(1), w_wide, row_h]);
 hold(ax_A,'on');
 t60 = (0:60*fs_eeg-1)'/fs_eeg;
-for k = keys
-    r = recs.(k{1}); st = style.(k{1});
+off_step = 6;                        % vertical offset between stacked traces (z units)
+y_ticks = zeros(1,numel(keys)); y_lbls = cell(1,numel(keys));
+for ki = 1:numel(keys)
+    k = keys{ki}; r = recs.(k); st = style.(k);
     n_plot = min(numel(r.raw), 60*fs_eeg);
-    plot(ax_A, t60(1:n_plot), zscore(r.raw(1:n_plot)), ...
-         'Color',[st.col st.fa],'LineStyle',st.ls,'LineWidth',.4,'DisplayName',st.lbl);
+    yoff = (numel(keys)-ki)*off_step;         % top-to-bottom in key order
+    plot(ax_A, t60(1:n_plot), zscore(r.raw(1:n_plot))+yoff, ...
+         'Color',st.col,'LineStyle','-','LineWidth',.4,'DisplayName',st.lbl);
+    y_ticks(ki)=yoff; y_lbls{ki}=st.lbl;
 end
-xlim(ax_A,[0 60]); ylabel(ax_A,'Amplitude (z)');
-legend(ax_A,'Location','northeast','FontSize',7,'Box','off','TextColor','k','NumColumns',2);
+xlim(ax_A,[0 60]);
+[y_ticks,ord]=sort(y_ticks); y_lbls=y_lbls(ord);
+set(ax_A,'YTick',y_ticks,'YTickLabel',y_lbls);
+ylabel(ax_A,'Amplitude (z, offset)');
 set(ax_A,'XTickLabel',[]);
 title(ax_A,'Raw signals, first 60 s','FontSize',8,'FontWeight','bold');
 set_ax(ax_A);
@@ -91,8 +98,8 @@ all_p = vertcat(all_p_cell{:}); all_p = all_p(all_p>0);
 ylim(ax_E,[10^floor(log10(min(all_p))) 10^ceil(log10(max(all_p)))]);
 xlim(ax_E,[1 45]); shade_bands(ax_E);
 legend(ax_E,'Location','northeast','FontSize',7,'Box','off','TextColor','k','NumColumns',2);
-set(ax_E,'XTickLabel',[]); ylabel(ax_E,'Power');
-title(ax_E,'Full 300 s PSD + specparam fits','FontSize',8,'FontWeight','bold');
+ylabel(ax_E,'Power (a.u.)'); xlabel(ax_E,'Frequency (Hz)');
+title(ax_E,'Power spectral density (full 300 s) + specparam fits','FontSize',8,'FontWeight','bold');
 set_ax(ax_E);
 
 %% G: fBOSC alpha + beta abundance (5 s segments, no theta)
@@ -105,6 +112,7 @@ group_w = 4.0;
 within  = 0.85;
 bw_v    = 0.42;
 x_positions = nan(n_bands, n_k);
+band_ab     = cell(n_bands, n_k);
 
 for bi = 1:n_bands
     flo = band_defs{bi,2}; fhi = band_defs{bi,3};
@@ -114,6 +122,7 @@ for bi = 1:n_bands
         fq   = r.fb.freqs;
         mask = fq >= flo & fq <= fhi;
         ab   = nanmean(r.fb.abundance_segs(:, mask), 2);
+        band_ab{bi,ki} = ab;
         off  = (ki - (n_k+1)/2) * (within*group_w/n_k);
         xpos = x_center + off;
         x_positions(bi,ki) = xpos;
@@ -131,11 +140,16 @@ end
 
 for bi = 1:n_bands
     text(ax_G, mean(x_positions(bi,:)), -0.045, band_defs{bi,1}, ...
-         'HorizontalAlignment','center','VerticalAlignment','top','FontSize',8);
+         'HorizontalAlignment','center','VerticalAlignment','top','FontSize',8,'Color','k');
 end
 ax_G.XTick = [];
 ax_G.XLim  = [min(x_positions(:))-1, max(x_positions(:))+1];
 ax_G.YLim  = [0, 0.6];
+for bi = 1:n_bands
+    yb = 0.46;  % annotate below the 0.6 ceiling
+    annot_ranksum(ax_G, band_ab{bi,1}, band_ab{bi,2}, x_positions(bi,1), x_positions(bi,2), yb);
+    annot_ranksum(ax_G, band_ab{bi,3}, band_ab{bi,4}, x_positions(bi,3), x_positions(bi,4), yb+0.055);
+end
 ylabel(ax_G,'Abundance'); xlabel(ax_G,'Band');
 for ki = 1:n_k
     st = style.(keys{ki});
@@ -147,7 +161,7 @@ title(ax_G,'fBOSC burst abundance — alpha and beta (5 s segs)','FontSize',8,'F
 set_ax(ax_G);
 
 %% B: exponent violin
-ax_B = axes(fig,'Position',[x_narrow, rb(1), w_narrow, rh3]);
+ax_B = axes(fig,'Position',[x_narrow, rb(1), w_narrow, rh2]);
 hold(ax_B,'on');
 for ki = 1:n_k
     k = keys{ki}; r = recs.(k); st = style.(k);
@@ -157,9 +171,12 @@ ax_B.XTick=1:n_k; ax_B.XTickLabel={'Sr','Sa','Er','Ea'};
 ax_B.XTickLabelRotation=30; ylabel(ax_B,'Exponent');
 title(ax_B,'Exponent per seg','FontSize',8,'FontWeight','bold');
 set_ax(ax_B);
+yb=ax_B.YLim; pad=0.10*diff(yb); ax_B.YLim=[yb(1) yb(2)+pad];
+annot_ranksum(ax_B, recs.(keys{1}).ex, recs.(keys{2}).ex, 1, 2, yb(2));
+annot_ranksum(ax_B, recs.(keys{3}).ex, recs.(keys{4}).ex, 3, 4, yb(2));
 
 %% D: R² violin
-ax_D = axes(fig,'Position',[x_narrow, rb(1)-rh3-rg, w_narrow, rh3]);
+ax_D = axes(fig,'Position',[x_narrow, rb(1)-rh2-rg, w_narrow, rh2]);
 hold(ax_D,'on');
 for ki = 1:n_k
     k = keys{ki}; r = recs.(k); st = style.(k);
@@ -169,30 +186,14 @@ ax_D.XTick=1:n_k; ax_D.XTickLabel={'Sr','Sa','Er','Ea'};
 ax_D.XTickLabelRotation=30; ylabel(ax_D,'R^2');
 title(ax_D,'Fit quality R^2','FontSize',8,'FontWeight','bold');
 set_ax(ax_D);
-
-%% F: peak histogram
-ax_F = axes(fig,'Position',[x_narrow, rb(1)-2*(rh3+rg), w_narrow, rh3]);
-hold(ax_F,'on');
-all_nk_cell = cellfun(@(k) recs.(k).nk, keys,'UniformOutput',false);
-all_nk = vertcat(all_nk_cell{:});
-max_pk = max(all_nk,[],'omitnan');
-edges  = -0.5:1:max_pk+0.5;
-for ki = 1:n_k
-    k = keys{ki}; r = recs.(k); st = style.(k);
-    histogram(ax_F, r.nk, edges,'Normalization','probability', ...
-        'FaceColor',st.col,'FaceAlpha',.5,'EdgeColor','none', ...
-        'DisplayName',sprintf('%s m=%.1f',st.lbl,mean(r.nk,'omitnan')));
-end
-xlim(ax_F,[-0.5 max_pk+1.5]);
-xlabel(ax_F,'Peaks / 2 s'); ylabel(ax_F,'Proportion');
-legend(ax_F,'FontSize',6,'Box','off','TextColor','k','NumColumns',1);
-title(ax_F,'Peak count','FontSize',8,'FontWeight','bold');
-set_ax(ax_F);
+yd=ax_D.YLim; pad=0.10*diff(yd); ax_D.YLim=[yd(1) yd(2)+pad];
+annot_ranksum(ax_D, recs.(keys{1}).r2, recs.(keys{2}).r2, 1, 2, yd(2));
+annot_ranksum(ax_D, recs.(keys{3}).r2, recs.(keys{4}).r2, 3, 4, yd(2));
 
 %% Panel letters
 drawnow;
-label_pairs = {ax_A,'A'; ax_C,'C'; ax_E,'E'; ax_G,'G'; ...
-               ax_B,'B'; ax_D,'D'; ax_F,'F'};
+label_pairs = {ax_A,'A'; ax_C,'C'; ax_E,'E'; ax_G,'F'; ...
+               ax_B,'B'; ax_D,'D'};
 for i = 1:size(label_pairs,1)
     ax  = label_pairs{i,1};
     ltr = label_pairs{i,2};
@@ -206,25 +207,53 @@ for i = 1:size(label_pairs,1)
 end
 
 %% Caption statistics
-fprintf('\n--- Fig5 caption statistics ---\n');
-bands = {'alpha',8,12; 'beta',16,30};
+% fBOSC: per segment, abundance averaged over the band's frequencies -- the
+% same quantity shown in the violins and used in every test. 'any' = proportion
+% of segments with abundance > 0 (the distributions are zero-inflated).
+fprintf('\n--- fig5_rest caption statistics ---\n');
+bands  = {'alpha',8,12; 'beta',16,30};
+bandab = @(r, lo, hi) nanmean(r.fb.abundance_segs(:, r.fb.freqs >= lo & r.fb.freqs <= hi), 2);
 for ki = 1:n_k
     k = keys{ki}; r = recs.(k);
-    fq = r.fb.freqs;
-    fprintf('[%s]  exp=%+.2f (%dpk)  SPRiNT SD=%.2f  seg exp=%.2f+/-%.2f (n=%d)\n', ...
-        k, r.sp.exponent, r.sp.n_peaks, nanstd(r.spr.exponent), ...
-        nanmean(r.ex), nanstd(r.ex), sum(~isnan(r.ex)));
+    fprintf('[%s]  length=%.1f s  exp=%+.2f (%dpk)  SPRiNT SD=%.2f  seg exp=%.2f+/-%.2f (%d valid of %d segs)\n', ...
+        k, numel(r.raw)/fs_eeg, r.sp.exponent, r.sp.n_peaks, nanstd(r.spr.exponent), ...
+        nanmean(r.ex), nanstd(r.ex), sum(~isnan(r.ex)), numel(r.ex));
     for bi = 1:size(bands,1)
-        m = fq >= bands{bi,2} & fq <= bands{bi,3};
-        vals = nanmedian(r.fb.abundance_segs(:,m), 2);
-        fprintf('  %-5s  median=%.3f  IQR=[%.3f %.3f]  n_seg=%d\n', ...
-            bands{bi,1}, nanmedian(vals), prctile(vals,25), prctile(vals,75), ...
-            sum(~isnan(vals)));
+        vals = bandab(r, bands{bi,2}, bands{bi,3});
+        fprintf('  fBOSC %-5s  median=%.3f  IQR=[%.3f %.3f]  mean=%.3f  any=%.2f  n_seg=%d\n', ...
+            bands{bi,1}, nanmedian(vals), prctile(vals,25), prctile(vals,75), nanmean(vals), ...
+            mean(vals(~isnan(vals)) > 0), sum(~isnan(vals)));
     end
 end
+fprintf('--- between states, within modality: rank-sum (independent segments) ---\n');
+rs = @(a,b) ranksum(a(~isnan(a)), b(~isnan(b)));
+for md = {'scalp','ecog'}
+    a = recs.([md{1} '_rest']); b = recs.([md{1} '_anes']);
+    fprintf('%-5s exponent p=%.3g | R2 p=%.3g', md{1}, rs(a.ex,b.ex), rs(a.r2,b.r2));
+    for bi = 1:size(bands,1)
+        fprintf(' | fBOSC %s p=%.3g', bands{bi,1}, ...
+            rs(bandab(a,bands{bi,2},bands{bi,3}), bandab(b,bands{bi,2},bands{bi,3})));
+    end
+    fprintf('\n');
+end
+fprintf('--- between modalities, within state: signed-rank, paired by simultaneous segment ---\n');
+for st = {'rest','anes'}
+    a = recs.(['scalp_' st{1}]); b = recs.(['ecog_' st{1}]);
+    [pe, de] = paired_signrank(a.ex, b.ex);
+    [pr, dr] = paired_signrank(a.r2, b.r2);
+    fprintf('%-4s exponent scalp-ECoG median diff %+.2f p=%.3g | R2 %+.3f p=%.3g', st{1}, de, pe, dr, pr);
+    for bi = 1:size(bands,1)
+        [pb, db] = paired_signrank(bandab(a,bands{bi,2},bands{bi,3}), bandab(b,bands{bi,2},bands{bi,3}));
+        fprintf(' | fBOSC %s %+.3f p=%.3g', bands{bi,1}, db, pb);
+    end
+    fprintf('\n');
+end
+fprintf(['NOTE: scalp (T5) and ECoG channels record overlapping sources at different\n' ...
+         '      measurement scale/geometry; differing exponents, peak counts and burst\n' ...
+         '      abundance across modality reflect the measurement, not only the neural process.\n']);
 fprintf('---\n\n');
 
-save_fig(fig, cfg, 'fig7_rest');
+save_fig(fig, cfg, 'fig5_rest');
 end
 
 %% ── Data loading ─────────────────────────────────────────────────────────
@@ -294,6 +323,27 @@ ax.Title.Color = 'k';
 ax.Title.Units = 'normalized';
 ax.Title.HorizontalAlignment = 'left';
 ax.Title.Position(1) = 0;
+end
+
+function [p, dmed] = paired_signrank(a, b)
+% Signed-rank on segment-wise differences a - b. Scalp and ECoG are recorded
+% simultaneously, so segment i covers the same time window in both.
+n = min(numel(a), numel(b)); d = a(1:n) - b(1:n); d = d(~isnan(d));
+dmed = median(d);
+if isempty(d) || all(d == 0), p = NaN; else, p = signrank(d); end
+end
+
+function annot_ranksum(ax, a, b, x1, x2, ytop)
+% Wilcoxon rank-sum between a and b; bracket + p above the pair.
+a=a(~isnan(a)); b=b(~isnan(b));
+if numel(a)<3 || numel(b)<3, return; end
+try, p=ranksum(a,b); catch, return; end
+xm=(x1+x2)/2;
+plot(ax,[x1 x1 x2 x2],[ytop ytop+0.02*diff(ax.YLim) ytop+0.02*diff(ax.YLim) ytop], ...
+     '-','Color',[.3 .3 .3],'LineWidth',.6,'HandleVisibility','off');
+if     p<0.001, s='***'; elseif p<0.01, s='**'; elseif p<0.05, s='*'; else, s='n.s.'; end
+text(ax,xm,ytop+0.03*diff(ax.YLim),s,'HorizontalAlignment','center', ...
+     'VerticalAlignment','bottom','FontSize',7,'Color','k');
 end
 
 function violin_kd(ax, data, x, hw, col)

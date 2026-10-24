@@ -1,10 +1,13 @@
 function fig5_erp_sprint()
-% Figure 5 — alpha lateralisation simulation (specparam on trial-averaged
+% alpha lateralisation simulation (specparam on trial-averaged
 % spectrogram). 2x2 layout, contra (ERD) vs ipsi (ERS):
 %   A  trial-averaged signal
 %   B  aperiodic exponent timecourse
 %   C  specparam-modelled spectrum (contra), dB re baseline
 %   D  specparam-modelled spectrum (ipsi),   dB re baseline
+%   C/D overlay: fitted peak centre frequency (black) vs true carrier (dotted)
+% ERD = event-related desynchronisation (amplitude decrease);
+% ERS = event-related synchronisation (amplitude increase).
 %
 % Signals: pure 10 Hz oscillation, no noise, no frequency jitter, carrier
 % phase drawn per trial and shared across conditions. Long time base
@@ -109,17 +112,15 @@ shade = @(ax) fill(ax, ...
 % A: lateralisation ERP (trial-averaged signals)
 ax_A = nexttile; hold(ax_A,'on');
 hA_co = plot(ax_A,t_ms,avg_co,'Color',[cc 0.75],'LineWidth',1.8, ...
-    'LineStyle','-','DisplayName','Contra (ERD)');
+    'LineStyle','-','DisplayName','Contra: ERD (decrease)');
 hA_ip = plot(ax_A,t_ms,avg_ip,'Color',[ic 0.75],'LineWidth',1.8, ...
-    'LineStyle','-','DisplayName','Ipsi (ERS)');
+    'LineStyle','-','DisplayName','Ipsi: ERS (increase)');
 xline(ax_A,0,'--','Color',txt_col,'LineWidth',.8,'HandleVisibility','off');
 axis(ax_A,'tight'); shade(ax_A);
 ylabel(ax_A,'Amplitude'); xlabel(ax_A,'Time (ms)');
 title(ax_A,'Trial-averaged signal','FontWeight','bold','Color',txt_col);
-lgd_A = legend(ax_A,'Location','northeast','Box','off','FontSize',7);
-lgd_A.TextColor = 'k';
-lgd_A.Units = 'normalized';
-lgd_A.Position(1) = lgd_A.Position(1) + 0.04;
+lgd_A = legend(ax_A,'Location','southoutside','Orientation','horizontal','Box','off','FontSize',7);
+lgd_A.TextColor = 'k';     % below the axes: the traces fill the panel, and the labels are long
 set_ax(ax_A,txt_col); plabel(ax_A,'A',txt_col);
 xlim(ax_A,[t_ms(1) t_ms(end)]);
 
@@ -131,10 +132,8 @@ xline(ax_B,0,'--','Color',txt_col,'LineWidth',.8,'HandleVisibility','off');
 axis(ax_B,'tight'); shade(ax_B);
 ylabel(ax_B,'Exponent'); xlabel(ax_B,'Time (ms)');
 title(ax_B,'Aperiodic exponent','FontWeight','bold','Color',txt_col);
-lgd_B = legend(ax_B,'Location','northeast','Box','off','FontSize',7);
-lgd_B.TextColor = 'k';
-lgd_B.Units = 'normalized';
-lgd_B.Position(1) = lgd_B.Position(1) + 0.04;
+lgd_B = legend(ax_B,'Location','southoutside','Orientation','horizontal','Box','off','FontSize',7);
+lgd_B.TextColor = 'k';     % same placement as A, so A and B keep equal heights
 set_ax(ax_B,txt_col); plabel(ax_B,'B',txt_col);
 xlim(ax_B,[t_bin_ms(1) t_bin_ms(end)]);
 
@@ -152,8 +151,12 @@ set(hC,'AlphaData', ~isnan(db_co(fr_msk,:)));
 set(ax_C,'YDir','normal','Color','w');
 colormap(ax_C,n1f.redblue(256)); clim(ax_C,[-clim_v clim_v]);
 set(ax_C,'YTick',log2(yt_hz),'YTickLabel',arrayfun(@num2str,yt_hz,'UniformOutput',false));
-xline(ax_C,0,'--k','LineWidth',.8);
+xline(ax_C,0,'--k','LineWidth',.8,'HandleVisibility','off');
 ylabel(ax_C,'Frequency (Hz)'); xlabel(ax_C,'Time (ms)');
+hold(ax_C,'on');
+plot(ax_C, t_bin_ms, log2(res_co.peak_cf), 'k-', 'LineWidth', 1.2, 'DisplayName', 'fitted peak centre');
+plot(ax_C, t_bin_ms([1 end]), log2([f0 f0]), 'k:', 'LineWidth', .8, 'DisplayName', sprintf('carrier (%g Hz)', f0));
+legend(ax_C,'Location','southwest','FontSize',6.5,'Box','off','TextColor','k');
 title(ax_C,'Contra (ERD): specparam model','FontWeight','bold','Color',txt_col);
 set_ax(ax_C,txt_col); plabel(ax_C,'C',txt_col);
 xlim(ax_C,[t_bin_ms(1) t_bin_ms(end)]);
@@ -165,10 +168,15 @@ set(hD,'AlphaData', ~isnan(db_ip(fr_msk,:)));
 set(ax_D,'YDir','normal','Color','w');
 colormap(ax_D,n1f.redblue(256)); clim(ax_D,[-clim_v clim_v]);
 set(ax_D,'YTick',log2(yt_hz),'YTickLabel',arrayfun(@num2str,yt_hz,'UniformOutput',false));
-xline(ax_D,0,'--k','LineWidth',.8);
+xline(ax_D,0,'--k','LineWidth',.8,'HandleVisibility','off');
 ylabel(ax_D,'Frequency (Hz)'); xlabel(ax_D,'Time (ms)');
+hold(ax_D,'on');
+plot(ax_D, t_bin_ms, log2(res_ip.peak_cf), 'k-', 'LineWidth', 1.2, 'DisplayName', 'fitted peak centre');
+plot(ax_D, t_bin_ms([1 end]), log2([f0 f0]), 'k:', 'LineWidth', .8, 'DisplayName', sprintf('carrier (%g Hz)', f0));
+legend(ax_D,'Location','southwest','FontSize',6.5,'Box','off','TextColor','k');
 title(ax_D,'Ipsi (ERS): specparam model','FontWeight','bold','Color',txt_col);
-cb = colorbar(ax_D); cb.FontSize=7; cb.Label.String='Model power (dB re baseline)';
+cb = colorbar(ax_D); cb.FontSize=7; cb.Color='k';
+cb.Label.String='Model power (dB re baseline)'; cb.Label.Color='k';
 set_ax(ax_D,txt_col); plabel(ax_D,'D',txt_col);
 xlim(ax_D,[t_bin_ms(1) t_bin_ms(end)]);
 
@@ -178,8 +186,8 @@ erd_win  = res_co.times >= erd_start & res_co.times <= erd_end;
 peak_win = res_co.times >= (erd_start+(erd_end-erd_start)/3) & ...
            res_co.times <= (erd_end  -(erd_end-erd_start)/3);
 
-fprintf('\n--- Fig5 Caption statistics ---\n');
-for row = {'Contra', res_co; 'Ipsi', res_ip}'
+fprintf('\n--- fig3_erp_sprint caption statistics ---\n');
+for row = {'Contra', res_co; 'Ipsi', res_ip; 'Control', res_ct}'
     label = row{1}; rex = row{2};
     fprintf('%s exponent: baseline=%.2f  ERD=%.2f  delta=%.2f\n', ...
         label, nanmean(rex.exponent(bl)), nanmean(rex.exponent(erd_win)), ...
@@ -195,7 +203,7 @@ for row = {'Contra', res_co; 'Ipsi', res_ip}'
 end
 fprintf('-------------------------------\n\n');
 
-save_fig(fig, cfg, 'fig5_erp_sprint');
+save_fig(fig, cfg, 'fig3_erp_sprint');
 end
 
 function db = local_model_db(res, bl_t)
@@ -214,7 +222,7 @@ set(ax,'Box','off','TickDir','out','FontSize',8,'LineWidth',.8, ...
     'XColor',txt_col,'YColor',txt_col,'Color','w');
 end
 function plabel(ax,letter,txt_col)
-text(ax,-0.08,1.03,letter,'Units','normalized','FontSize',11, ...
+text(ax,-0.13,1.05,letter,'Units','normalized','FontSize',11, ...   % clear of the top y-tick labels
      'FontWeight','bold','Color',txt_col);
 end
 function save_fig(fig,cfg,name)
