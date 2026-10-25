@@ -91,7 +91,7 @@ set_ax(ax); plabel(ax,'B');
 ax = axes(fig,'Position',[lm, rb(2), wL, rh]); hold(ax,'on');
 m = fw >= 1 & fw <= 30;
 plot(ax, fw(m),  pw(m)  / max(pw(m)),  'Color', ce, 'LineWidth', 1.2, 'DisplayName', 'slowly modulated');
-plot(ax, fw0(m), pw0(m) / max(pw0(m)), 'k:', 'LineWidth', .9, 'DisplayName', 'unmodulated');
+plot(ax, fw0(m), pw0(m) / max(pw0(m)), 'k:', 'LineWidth', 1.3, 'DisplayName', 'unmodulated');   % dotted: '--' breaks into sparse dashes on this jagged log-scale trace
 set(ax,'YScale','log'); xlim(ax,[1 30]);
 xlabel(ax,'Frequency (Hz)'); ylabel(ax,'Power (normalised)');
 legend(ax,'Location','northeast','FontSize',6.5,'Box','off','TextColor','k');
@@ -123,8 +123,8 @@ off = max(yS(seg2)) - min(yI(seg2));
 plot(ax, t2(seg2), yI(seg2) + off, 'Color', cK{1}, 'LineWidth', .5, 'DisplayName', 'independent (\kappa = 0)');
 plot(ax, t2(seg2), yS(seg2),       'Color', cK{3}, 'LineWidth', .5, 'DisplayName', 'synchronised (\kappa = 0.8)');
 ylv = [min(yS(seg2)), max(yI(seg2)) + off]; r = diff(ylv);
-ylim(ax, [ylv(1) - 0.03*r, ylv(2) + 0.40*r]);
-legend(ax,'Location','north','Orientation','horizontal','FontSize',6.5,'Box','off','TextColor','k');
+ylim(ax, [ylv(1) - 0.03*r, ylv(2) + 0.65*r]);   % headroom for the two-row legend
+legend(ax,'Location','north','NumColumns',1,'FontSize',6.5,'Box','off','TextColor','k');   % stacked: one row was wider than the axes
 xlim(ax,[1 2]); set(ax,'YTick',[]); xlabel(ax,'Time (s)');
 title(ax,sprintf('Summed over %d cells', n_cells),'FontSize',8,'FontWeight','bold');
 set_ax(ax); plabel(ax,'F');
